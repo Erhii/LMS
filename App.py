@@ -1,7 +1,7 @@
-from flask import Flask, request, abort, jsonify, url_for
+from flask import Flask, request, abort, jsonify, url_for, g
 from pymongo import MongoClient
 from flask.ext.httpauth import HTTPBasicAuth
-from passlib import custom_app_context
+from passlib.apps import custom_app_context
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
 from bson.objectid import ObjectId
 
@@ -13,7 +13,8 @@ app.config = {
     "SECRET_KEY": "ohfouwehfonewoifnksdnnjfj"
 }
 
-class Users():
+
+class Users(object):
     def __init__(self, account="", password=""):
         self.id = ""
         self.account = account
@@ -57,7 +58,7 @@ def get_auth_token():
 def verify_password(account_or_token, password):
     user = Users.generate_auth_token(account_or_token)
     if not user:
-        user_json = db.users.find_one({"account": account})
+        user_json = db.users.find_one({"account": account_or_token})
         user = Users(user_json['account'], user_json['password'])
         if not user_json or not user.verify_password(password):
             return False
@@ -81,15 +82,13 @@ def sign_up():
     db.users.insert_one(user_json)
     user.setId(db.users.find_one({'account': account})['_id'])
     return jsonify({"account": user.account}), 201, {"Location": url_for('sign_in',
-                                                                         id=str(user.id),
+                                                                         user_id=str(user.id),
                                                                          _external=True)}
 
 
-@app.route("/api/v1.0/users/<string:id>")
+@app.route("/api/v1.0/users/<string:user_id>")
 def sign_in(user_id):
     user = db.users.find_one({'_id': ObjectId(user_id)})
     if not user:
         abort(400)
     return jsonify({'account': user.account})
-
-
