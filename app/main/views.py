@@ -1,8 +1,9 @@
 from . import main
 from .. import auth
-from flask import request, abort, jsonify
+from flask import request, abort, jsonify, g
 from .. import db
 from bson import ObjectId
+from datetime import datetime
 
 
 @main.route("/api/v1.0/book", methods=["POST"])
@@ -52,25 +53,20 @@ def display_book(book_id):
 @main.route("/api/v1.0/preorder_book/<string:book_id>", method=['POST'])
 @auth.login_required
 def preoder_book(book_id):
-    book = db.books.find_one({"book_id": ObjectId(book_id)})
+    book = db.books.find_one({"_id": ObjectId(book_id)})
+    order = {
+
+    }
+    db.preorder.insert({"phone": g.user.phone})
 
 
-@main.route("/api/v1.0/query_book/", methods=["POST"])
-def query_book():
-    book_name = request.json.get("book_name")
-    isbn_num = request.json.get("isbn_num")
-    if not book_name and isbn_num:
-        abort(400)
-    book = db.books.find_one({"book_name": book_name, "isbn_num": isbn_num})
-    return jsonify(book)
-
-
-@main.route("/api/v1.0/borrow_book/<string:book_id>")
+@main.route("/api/v1.0/borrow_book/<string:book_id>", method=['POST'])
+@auth.login_required
 def borrow_book(book_id):
     book = db.books.find_one({"book_id": book_id})
 
 
-@main.route("/api/v1.0/query_history/<string:user_id>")
+@main.route("/api/v1.0/history/<string:user_id>", method=["GET"])
 def query_history(user_id):
     record = db.records.find({"user_id": user_id})
     return jsonify(record)
